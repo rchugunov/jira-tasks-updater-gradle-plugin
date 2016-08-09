@@ -1,0 +1,67 @@
+plugins {
+    id "com.gradle.plugin-publish" version "0.9.3"
+    id "com.jfrog.bintray" version "1.6"
+}
+
+group = 'ru.rambler.jiratasksupdater'
+description = 'Gradle plugin retrieving git smart-commits and updating appropriate jira tasks'
+version '0.1.5'
+
+repositories {
+    jcenter()
+    mavenCentral()
+}
+
+apply plugin: 'java-gradle-plugin'
+apply plugin: 'groovy'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+
+dependencies {
+    compile 'commons-logging:commons-logging:1.1.1'
+    compile 'com.google.api-client:google-api-client:1.21.0'
+    compile 'com.google.oauth-client:google-oauth-client:1.21.0'
+    compile 'com.squareup.retrofit2:retrofit:2.0.2'
+    compile 'com.squareup.retrofit2:converter-gson:2.0.2'
+    compile 'com.android.tools.build:gradle:2.2.0-alpha2'
+    compile 'com.google.code.gson:gson:2.4'
+}
+
+//bintray {
+//    user = "${BINTRAY_USER}"
+//    key = "${BINTRAY_KEY}"
+//    pkg {
+//        repo = "maven"
+//        name = "com.github.rchugunov"
+//        licenses = ['Apache-2.0']
+//        vcsUrl = 'https://github.com/rchugunov/android-analytics-gradle-plugin'
+//    }
+//    publications = ['AndroidAnalytics']
+//}
+
+publishing {
+    publications {
+        AndroidAnalytics(MavenPublication) {
+            artifact("$buildDir/libs/${archivesBaseName}-${version}.jar")
+            artifactId archivesBaseName
+            groupId group
+            version version
+        }
+    }
+}
+
+// The configuration example below shows the minimum required properties
+// configured to publish your plugin to the plugin portal
+//pluginBundle {
+//    website = 'http://www.gradle.org/'
+//    vcsUrl = 'https://github.com/gradle/gradle'
+//    description = 'Gradle plugin retrieving git smart-commits and updating appropriate jira tasks'
+//    tags = ['android', 'jira', 'smart-commits', 'jenkins']
+//
+//    plugins {
+//        androidAnalytics {
+//            id = 'com.github.rchugunov.android-analytics'
+//            displayName = 'Gradle plugin for retrieving/handling application statistics'
+//        }
+//    }
+//}
