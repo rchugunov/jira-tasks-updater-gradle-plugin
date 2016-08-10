@@ -1,7 +1,6 @@
 package ru.rambler.jiratasksupdater.jirarest;
 
-
-import com.google.common.reflect.TypeToken;
+import com.google.gson.reflect.TypeToken;
 
 import java.lang.annotation.Annotation;
 
@@ -21,8 +20,7 @@ public class JiraRestClient {
                 .baseUrl(jiraEndpoint)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
-
-        converter = retrofit.responseBodyConverter(new TypeToken<ResponseBody>(ResponseBody.class) {
+        converter = retrofit.responseBodyConverter(new TypeToken<ResponseBody>() {
         }.getType(), new Annotation[0]);
 
         authService = retrofit.create(JiraRestAuthService.class);

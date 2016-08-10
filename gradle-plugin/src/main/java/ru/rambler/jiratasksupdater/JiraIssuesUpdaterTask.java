@@ -9,6 +9,7 @@ import java.util.List;
 
 import retrofit2.Call;
 import retrofit2.Response;
+import ru.rambler.jiratasksupdater.git.GitDataProvider;
 import ru.rambler.jiratasksupdater.jirarest.BaseJiraResponse;
 import ru.rambler.jiratasksupdater.jirarest.JiraProjectVersion;
 import ru.rambler.jiratasksupdater.jirarest.JiraRestClient;
@@ -34,6 +35,26 @@ public class JiraIssuesUpdaterTask extends DefaultTask {
             throw new StopActionException("projectId param is necessary");
         }
 
+        if (Utils.stringIsEmpty(extension.getBranch())) {
+            throw new StopActionException("branch param is necessary");
+        }
+
+        getGitCommits(extension);
+        getJiraVersions(extension);
+    }
+
+    private void getGitCommits(JiraTasksUpdaterExtension extension) {
+        GitDataProvider provider = new GitDataProvider();
+        try {
+            provider.init(extension.getProjectId(), extension.getBranch(), getLogger());
+            List<String> tasks = provider.getJiraTasks();
+            getLogger().info(tasks.toString());
+        } catch (Exception e) {
+            getLogger().error(e.getMessage(), e);
+        }
+    }
+
+    private void getJiraVersions(JiraTasksUpdaterExtension extension) {
         JiraRestClient client = JiraRestClient.getInstance(extension.getJiraEndpoint());
         Call<List<JiraProjectVersion>> responseCall = client.getApiService().getProjectVersions(extension.getProjectId(),
                 "Basic " + Base64Helper.encode(extension.getUsername() + ":" + extension.getPassword()));

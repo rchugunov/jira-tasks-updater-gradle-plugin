@@ -17,14 +17,13 @@ apply plugin: 'maven'
 apply plugin: 'maven-publish'
 
 dependencies {
+    compile gradleApi()
     compile fileTree("src/libs")
     compile 'commons-logging:commons-logging:1.1.1'
-    compile 'com.google.api-client:google-api-client:1.21.0'
-    compile 'com.google.oauth-client:google-oauth-client:1.21.0'
     compile 'com.squareup.retrofit2:retrofit:2.0.2'
     compile 'com.squareup.retrofit2:converter-gson:2.0.2'
-    compile 'com.android.tools.build:gradle:2.2.0-alpha2'
     compile 'com.google.code.gson:gson:2.4'
+    compile 'org.eclipse.jgit:org.eclipse.jgit:4.4.1.201607150455-r'
 }
 
 //bintray {

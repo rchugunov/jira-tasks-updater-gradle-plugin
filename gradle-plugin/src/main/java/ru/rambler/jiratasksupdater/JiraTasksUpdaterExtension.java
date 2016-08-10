@@ -6,6 +6,7 @@ public class JiraTasksUpdaterExtension {
     private String username;
     private String password;
     private String projectId;
+    private String branch;
 
     public String getJiraEndpoint() {
         return jiraEndpoint;
@@ -37,5 +38,13 @@ public class JiraTasksUpdaterExtension {
 
     public void setProjectId(String projectId) {
         this.projectId = projectId;
+    }
+
+    public String getBranch() {
+        return branch;
+    }
+
+    public void setBranch(String branch) {
+        this.branch = branch;
     }
 }
