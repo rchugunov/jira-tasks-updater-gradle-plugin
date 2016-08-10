@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'ru.rambler.jiratasksupdater'
 
 android {
     compileSdkVersion 24
@@ -27,4 +28,11 @@ dependencies {
     compile 'com.android.support:appcompat-v7:24.1.1'
     compile 'com.android.support.constraint:constraint-layout:1.0.0-alpha4'
     testCompile 'junit:junit:4.12'
+}
+
+jiraTasksUpdater {
+    jiraEndpoint 'https://jira.rambler-co.ru/'
+    username 'r.chugunov'
+    password 'Netwt18oz'
+    projectId 'RMAILAND'
 }

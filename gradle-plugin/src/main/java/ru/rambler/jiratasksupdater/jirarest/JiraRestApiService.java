@@ -1,6 +1,8 @@
 package ru.rambler.jiratasksupdater.jirarest;
 
 
+import java.util.List;
+
 import retrofit2.Call;
 import retrofit2.http.GET;
 import retrofit2.http.Header;
@@ -15,6 +17,6 @@ public interface JiraRestApiService {
 //
     @GET("rest/api/2/project/{projectId}/versions")
     @Headers("Content-Type: application/json")
-    Call<JiraProjectVersionsResponse> getProjectVersions(@Path("projectId") String projectId,
-                                                         @Header("Authorization") String basic);
+    Call<List<JiraProjectVersion>> getProjectVersions(@Path("projectId") String projectId,
+                                                      @Header("Authorization") String basic);
 }
