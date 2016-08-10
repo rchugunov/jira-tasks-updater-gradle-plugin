@@ -1,15 +1,12 @@
 package ru.rambler.jiratasksupdater.git;
 
 
-import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.revplot.PlotCommit;
-import org.eclipse.jgit.revplot.PlotCommitList;
-import org.eclipse.jgit.revplot.PlotLane;
-import org.eclipse.jgit.revplot.PlotWalk;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevCommitList;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.gradle.api.logging.Logger;
@@ -17,7 +14,7 @@ import org.gradle.api.logging.Logger;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -29,6 +26,7 @@ public class GitDataProvider {
     private Repository existingRepo;
     private Logger logger;
     private Pattern smartCommitPattern;
+    private Date lastTagDate;
 
     public GitDataProvider() {
 
@@ -45,32 +43,48 @@ public class GitDataProvider {
         this.smartCommitPattern = Pattern.compile(".*(" + jiraProjectId + "-" + "/d*).*");
     }
 
-    public List<String> getJiraTasks() throws GitException, IOException {
+    public List<String> getJiraTasks() throws GitException, IOException, GitAPIException {
         if (existingRepo == null || Utils.stringIsEmpty(currentBranch)) {
             throw new GitException("Provider is not inited");
         }
 
-        RevWalk walk = new RevWalk(existingRepo);
+        Git git = new Git(existingRepo);
 
-        ObjectId from = existingRepo.resolve("refs/heads/" + currentBranch);
-        ObjectId to = existingRepo.resolve("refs/remotes/origin/master");
-        walk.markStart(walk.parseCommit(from));
-        walk.markUninteresting(walk.parseCommit(to));
+        List<Ref> refs = git.tagList().call();
 
-        RevCommitList<RevCommit> revCommitList = new RevCommitList<RevCommit>();
-        revCommitList.source(walk);
-        revCommitList.fillTo(walk.parseCommit(to), Integer.MAX_VALUE);
+        RevWalk rw = new RevWalk(existingRepo);
 
-        return parseCommits(revCommitList);
+        for (Ref ref : refs) {
+            try {
+                Date d = rw.parseTag(ref.getObjectId()).getTaggerIdent().getWhen();
+
+                if (lastTagDate == null || d.after(lastTagDate)) {
+                    lastTagDate = d;
+                }
+            } catch (IncorrectObjectTypeException e) {
+                Date d = rw.parseCommit(ref.getObjectId()).getCommitterIdent().getWhen();
+                if (lastTagDate == null || d.after(lastTagDate)) {
+                    lastTagDate = d;
+                }
+            }
+        }
+
+        return parseCommits(git.log().call());
     }
 
-    private List<String> parseCommits(RevCommitList<RevCommit> revCommitList) {
+    private List<String> parseCommits(Iterable<RevCommit> revCommitList) {
         List<String> commits = new ArrayList<>();
-        for (RevCommit revCommit : revCommitList) {
-            String fullMessage = revCommit.getFullMessage();
 
-            if (fullMessage.matches(smartCommitPattern.pattern())) {
-                Matcher smCommitMatcher = smartCommitPattern.matcher(fullMessage);
+        for (RevCommit revCommit : revCommitList) {
+
+            String shortMessage = revCommit.getShortMessage();
+
+            if (!revCommit.getAuthorIdent().getWhen().after(lastTagDate)) {
+                continue;
+            }
+
+            if (shortMessage.matches(smartCommitPattern.pattern())) {
+                Matcher smCommitMatcher = smartCommitPattern.matcher(shortMessage);
                 while (smCommitMatcher.find()) {
                     String commit = smCommitMatcher.group(1);
                     commits.add(commit);

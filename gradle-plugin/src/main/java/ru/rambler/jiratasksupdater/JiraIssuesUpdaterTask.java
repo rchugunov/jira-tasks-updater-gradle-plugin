@@ -48,9 +48,10 @@ public class JiraIssuesUpdaterTask extends DefaultTask {
         try {
             provider.init(extension.getProjectId(), extension.getBranch(), getLogger());
             List<String> tasks = provider.getJiraTasks();
-            getLogger().info(tasks.toString());
+            getLogger().quiet(tasks.toString());
         } catch (Exception e) {
             getLogger().error(e.getMessage(), e);
+            throw new StopActionException(e.getMessage());
         }
     }
 
@@ -78,6 +79,6 @@ public class JiraIssuesUpdaterTask extends DefaultTask {
     }
 
     private void handleResponse(List<JiraProjectVersion> response) {
-        getLogger().debug("JiraProjectVersionResponse: " + response.toString());
+        getLogger().quiet("JiraProjectVersionResponse: " + response.toString());
     }
 }
