@@ -1,6 +1,7 @@
 package ru.rambler.jiratasksupdater;
 
 
+import org.gradle.api.Action;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.StopActionException;
 import org.gradle.api.tasks.TaskAction;
@@ -11,13 +12,21 @@ import retrofit2.Call;
 import retrofit2.Response;
 import ru.rambler.jiratasksupdater.git.GitDataProvider;
 import ru.rambler.jiratasksupdater.jirarest.BaseJiraResponse;
-import ru.rambler.jiratasksupdater.jirarest.JiraProjectVersion;
+import ru.rambler.jiratasksupdater.jirarest.JiraFixedVersionRequest;
+import ru.rambler.jiratasksupdater.jirarest.JiraIssue;
+import ru.rambler.jiratasksupdater.jirarest.JiraIssueEditMeta;
+import ru.rambler.jiratasksupdater.jirarest.JiraIssueFixVersion;
 import ru.rambler.jiratasksupdater.jirarest.JiraRestClient;
 
 public class JiraIssuesUpdaterTask extends DefaultTask {
+    private JiraRestClient client;
+    private JiraTasksUpdaterExtension extension;
+
     @TaskAction
     public void run() {
-        JiraTasksUpdaterExtension extension = getProject().getExtensions().findByType(JiraTasksUpdaterExtension.class);
+        extension = getProject().getExtensions().findByType(JiraTasksUpdaterExtension.class);
+
+        client = JiraRestClient.getInstance(extension.getJiraEndpoint());
 
         if (Utils.stringIsEmpty(extension.getJiraEndpoint())) {
             throw new StopActionException("jiraEndpoint param is necessary");
@@ -39,37 +48,46 @@ public class JiraIssuesUpdaterTask extends DefaultTask {
             throw new StopActionException("branch param is necessary");
         }
 
-        getGitCommits(extension);
-        getJiraVersions(extension);
+        List<String> tasks = getGitCommits();
+        updateTasksWithLastVersion(tasks);
+
+        moveTasksToNextStage(tasks, extension.getBranch(), extension.getStage());
     }
 
-    private void getGitCommits(JiraTasksUpdaterExtension extension) {
-        GitDataProvider provider = new GitDataProvider();
-        try {
-            provider.init(extension.getProjectId(), extension.getBranch(), getLogger());
-            List<String> tasks = provider.getJiraTasks();
-            getLogger().quiet(tasks.toString());
-        } catch (Exception e) {
-            getLogger().error(e.getMessage(), e);
-            throw new StopActionException(e.getMessage());
+    private void updateTasksWithLastVersion(List<String> tasks) {
+        for (String issueId : tasks) {
+            getLastAvailableVersion(issueId, jiraIssueFixVersion -> updateTaskWithVersion(issueId, jiraIssueFixVersion));
         }
     }
 
-    private void getJiraVersions(JiraTasksUpdaterExtension extension) {
-        JiraRestClient client = JiraRestClient.getInstance(extension.getJiraEndpoint());
-        Call<List<JiraProjectVersion>> responseCall = client.getApiService().getProjectVersions(extension.getProjectId(),
+    private void getLastAvailableVersion(String issueId, Action<JiraIssueFixVersion> result) {
+        Call<JiraIssueEditMeta> responseCall = client.getApiService().getIssueEditMeta(issueId,
                 "Basic " + Base64Helper.encode(extension.getUsername() + ":" + extension.getPassword()));
         try {
-            Response<List<JiraProjectVersion>> response = responseCall.execute();
-            List<JiraProjectVersion> jiraProjectVersionsResponse = response.body();
+
+            Response<JiraIssueEditMeta> response = responseCall.execute();
+            JiraIssueEditMeta jiraIssueEditMetaResponse = response.body();
+
             if (response.isSuccessful()) {
-                handleResponse(jiraProjectVersionsResponse);
+
+                if (jiraIssueEditMetaResponse.getFields() == null ||
+                        jiraIssueEditMetaResponse.getFields().getFixVersions() == null ||
+                        jiraIssueEditMetaResponse.getFields().getFixVersions().getAllowedValues() == null ||
+                        jiraIssueEditMetaResponse.getFields().getFixVersions().getAllowedValues().isEmpty()) {
+
+                    getLogger().error("No available fix versions for issue: " + issueId);
+                }
+
+                List<JiraIssueFixVersion> fixVersions = jiraIssueEditMetaResponse.getFields().getFixVersions().getAllowedValues();
+                result.execute(fixVersions.get(fixVersions.size() - 1));
             } else {
-                getLogger().error("Response code: " + response.code() + " " + response.message());
+                getLogger().error("getIssueEditMeta Response code: " +
+                        response.code() + " " +
+                        response.message() + " IssueId " + issueId);
 
                 if (response.errorBody() != null) {
                     BaseJiraResponse errorResponse = client.getConverter().convert(response.errorBody());
-                    getLogger().error(errorResponse.toString());
+                    getLogger().error("GetIssueEditMeta issueId " + issueId + " " + errorResponse.toString());
                 }
             }
         } catch (Exception e) {
@@ -78,7 +96,73 @@ public class JiraIssuesUpdaterTask extends DefaultTask {
         }
     }
 
-    private void handleResponse(List<JiraProjectVersion> response) {
-        getLogger().quiet("JiraProjectVersionResponse: " + response.toString());
+    private void updateTaskWithVersion(String issueId, JiraIssueFixVersion jiraIssueFixVersion) {
+        JiraFixedVersionRequest request = new JiraFixedVersionRequest();
+        JiraIssue.Update update = new JiraIssue.Update();
+        update.setFixVersions(new JiraIssue.Update.FixVersions(jiraIssueFixVersion));
+        request.setUpdate(update);
+        Call<Response> responseCall = client.getApiService().updateJiraIssueFixedVersion(issueId,
+                "Basic " + Base64Helper.encode(extension.getUsername() + ":" + extension.getPassword()),
+                false,
+                request);
+        try {
+
+            Response<Response> response = responseCall.execute();
+
+            if (response.isSuccessful()) {
+
+            } else {
+                getLogger().error("updateJiraIssueFixedVersion Response code: " +
+                        response.code() + " " +
+                        response.message() + " IssueId " + issueId);
+
+                if (response.errorBody() != null) {
+                    BaseJiraResponse errorResponse = client.getConverter().convert(response.errorBody());
+                    getLogger().error("updateJiraIssueFixedVersion issueId " + issueId + " " + errorResponse.toString());
+                }
+            }
+        } catch (Exception e) {
+            getLogger().error(e.getMessage(), e);
+            throw new StopActionException(e.getMessage());
+        }
     }
+
+    private void moveTasksToNextStage(List<String> tasks, String branch, String stage) {
+
+    }
+
+    private List<String> getGitCommits() {
+        GitDataProvider provider = new GitDataProvider();
+        try {
+            provider.init(extension.getProjectId(), extension.getBranch(), getLogger());
+            List<String> tasks = provider.getJiraTasks();
+            getLogger().quiet(tasks.toString());
+            return tasks;
+        } catch (Exception e) {
+            getLogger().error(e.getMessage(), e);
+            throw new StopActionException(e.getMessage());
+        }
+    }
+
+//    private void getJiraVersions(Action<List<JiraProjectVersion>> result) {
+//        Call<List<JiraProjectVersion>> responseCall = client.getApiService().getProjectVersions(extension.getProjectId(),
+//                "Basic " + Base64Helper.encode(extension.getUsername() + ":" + extension.getPassword()));
+//        try {
+//            Response<List<JiraProjectVersion>> response = responseCall.execute();
+//            List<JiraProjectVersion> jiraProjectVersionsResponse = response.body();
+//            if (response.isSuccessful()) {
+//                result.execute(jiraProjectVersionsResponse);
+//            } else {
+//                getLogger().error("Response code: " + response.code() + " " + response.message());
+//
+//                if (response.errorBody() != null) {
+//                    BaseJiraResponse errorResponse = client.getConverter().convert(response.errorBody());
+//                    getLogger().error(errorResponse.toString());
+//                }
+//            }
+//        } catch (Exception e) {
+//            getLogger().error(e.getMessage(), e);
+//            throw new StopActionException(e.getMessage());
+//        }
+//    }
 }

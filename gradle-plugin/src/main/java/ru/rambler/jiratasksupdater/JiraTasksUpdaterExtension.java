@@ -47,4 +47,8 @@ public class JiraTasksUpdaterExtension {
     public void setBranch(String branch) {
         this.branch = branch;
     }
+
+    public String getStage() {
+        return null;
+    }
 }
