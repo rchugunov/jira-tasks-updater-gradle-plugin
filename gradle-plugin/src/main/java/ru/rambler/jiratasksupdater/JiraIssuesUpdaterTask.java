@@ -56,8 +56,6 @@ public class JiraIssuesUpdaterTask extends DefaultTask {
 
         Set<String> tasks = getGitCommits();
         updateTasksWithLastVersion(tasks);
-
-        moveTasksToNextStage(tasks, extension.getBranch(), extension.getStage());
     }
 
     private void updateTasksWithLastVersion(Set<String> tasks) {
@@ -134,10 +132,6 @@ public class JiraIssuesUpdaterTask extends DefaultTask {
             getLogger().quiet(e.getMessage(), e);
             throw new StopActionException(e.getMessage());
         }
-    }
-
-    private void moveTasksToNextStage(Set<String> tasks, String branch, String stage) {
-
     }
 
     private Set<String> getGitCommits() {
