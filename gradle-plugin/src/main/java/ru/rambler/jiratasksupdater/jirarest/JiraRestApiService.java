@@ -1,17 +1,14 @@
 package ru.rambler.jiratasksupdater.jirarest;
 
 
-import java.util.List;
-
+import okhttp3.ResponseBody;
 import retrofit2.Call;
-import retrofit2.Response;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.Header;
 import retrofit2.http.Headers;
-import retrofit2.http.PUT;
+import retrofit2.http.POST;
 import retrofit2.http.Path;
-import retrofit2.http.Query;
 
 public interface JiraRestApiService {
     //    @FormUrlEncoded
@@ -24,24 +21,21 @@ public interface JiraRestApiService {
     Call<JiraIssueEditMeta> getIssueEditMeta(@Path("issueId") String issueId,
                                              @Header("Authorization") String basic);
 
-    @PUT("rest/api/2/issue/{issueId}")
-    @Headers("Content-Type: application/json")
-    Call<Response> updateJiraIssueFixedVersion(@Path("issueId") String issueId,
-                                               @Header("Authorization") String basic,
-                                               @Query("notifyUsers") boolean notifyUsers,
-                                               @Body JiraFixedVersionRequest request);
+//    @PUT("rest/api/2/issue/{issueId}")
+//    @Headers("Content-Type: application/json")
+//    Call<Response> updateJiraIssueFixedVersion(@Path("issueId") String issueId,
+//                                               @Header("Authorization") String basic,
+//                                               @Query("notifyUsers") boolean notifyUsers,
+//                                               @Body JiraFixedVersionRequest request);
 
-    @PUT("rest/api/2/issue/{issueId}")
+    @GET("rest/api/2/issue/{issueId}/?expand=transitions")
     @Headers("Content-Type: application/json")
-    Call<List<JiraProjectVersion>> getTransitions(@Path("issueId") String issueId,
-                                                  @Header("Authorization") String basic,
-                                                  @Query("notifyUsers") boolean notifyUsers,
-                                                  @Query("overrideScreenSecurity") boolean overrideScreenSecurity);
+    Call<JiraIssueStatusReponse> getIssueStatus(@Path("issueId") String issueId,
+                                                @Header("Authorization") String basic);
 
-    @PUT("rest/api/2/issue/{issueId}")
+    @POST("rest/api/2/issue/{issueId}/transitions")
     @Headers("Content-Type: application/json")
-    Call<List<JiraProjectVersion>> doTransition(@Path("issueId") String issueId,
-                                                @Header("Authorization") String basic,
-                                                @Query("notifyUsers") boolean notifyUsers,
-                                                @Query("overrideScreenSecurity") boolean overrideScreenSecurity);
+    Call<ResponseBody> doTransition(@Path("issueId") String issueId,
+                                    @Header("Authorization") String basic,
+                                    @Body JiraIssue jiraIssue);
 }

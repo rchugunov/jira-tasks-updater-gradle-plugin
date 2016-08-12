@@ -3,84 +3,68 @@ package ru.rambler.jiratasksupdater.git;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.errors.IncorrectObjectTypeException;
-import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.errors.MissingObjectException;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.gradle.api.logging.Logger;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import ru.rambler.jiratasksupdater.Utils;
-
 public class GitDataProvider {
-    private String currentBranch;
     private Repository existingRepo;
     private Logger logger;
     private Pattern smartCommitPattern;
-    private Date lastTagDate;
 
     public GitDataProvider() {
 
     }
 
-    public void init(String jiraProjectId, String branch, Logger logger) throws IOException {
+    public void init(String jiraProjectId, Logger logger) throws IOException {
         // Open an existing repository
         existingRepo = new FileRepositoryBuilder()
                 .setGitDir(new File(".git"))
                 .build();
 
-        this.currentBranch = branch;
+        logger.quiet("Current branch " + existingRepo.getBranch());
         this.logger = logger;
-        this.smartCommitPattern = Pattern.compile(".*(" + jiraProjectId + "-" + "/d*).*");
+        this.smartCommitPattern = Pattern.compile(".*(" + jiraProjectId + "-\\d*).*");
     }
 
-    public List<String> getJiraTasks() throws GitException, IOException, GitAPIException {
-        if (existingRepo == null || Utils.stringIsEmpty(currentBranch)) {
+    public Set<String> getJiraTasks() throws GitException, IOException, GitAPIException {
+        if (existingRepo == null) {
             throw new GitException("Provider is not inited");
         }
 
         Git git = new Git(existingRepo);
-
-        List<Ref> refs = git.tagList().call();
-
-        RevWalk rw = new RevWalk(existingRepo);
-
-        for (Ref ref : refs) {
-            try {
-                Date d = rw.parseTag(ref.getObjectId()).getTaggerIdent().getWhen();
-
-                if (lastTagDate == null || d.after(lastTagDate)) {
-                    lastTagDate = d;
-                }
-            } catch (IncorrectObjectTypeException e) {
-                Date d = rw.parseCommit(ref.getObjectId()).getCommitterIdent().getWhen();
-                if (lastTagDate == null || d.after(lastTagDate)) {
-                    lastTagDate = d;
-                }
-            }
-        }
-
-        return parseCommits(git.log().call());
+        return parseCommits(git, git.log().call());
     }
 
-    private List<String> parseCommits(Iterable<RevCommit> revCommitList) {
-        List<String> commits = new ArrayList<>();
+    private Set<String> parseCommits(Git git, Iterable<RevCommit> revCommitList) {
+        Set<String> commits = new LinkedHashSet<>();
 
         for (RevCommit revCommit : revCommitList) {
-
             String shortMessage = revCommit.getShortMessage();
+            logger.quiet("Commit " + shortMessage + revCommit.getName());
 
-            if (!revCommit.getAuthorIdent().getWhen().after(lastTagDate)) {
-                continue;
+            try {
+                Map<ObjectId, String> tags = git.nameRev().addPrefix("refs/tags/").add(revCommit).call();
+
+                if (!tags.isEmpty()) {
+                    for (Map.Entry<ObjectId, String> entry : tags.entrySet()) {
+                        logger.quiet("Found tag " + entry.getValue() + " for commit " + shortMessage);
+                    }
+                    break;
+                }
+            } catch (MissingObjectException | GitAPIException e) {
+                logger.error(e.getMessage(), e);
             }
 
             if (shortMessage.matches(smartCommitPattern.pattern())) {

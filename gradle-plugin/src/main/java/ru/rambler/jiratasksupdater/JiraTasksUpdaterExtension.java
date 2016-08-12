@@ -7,6 +7,10 @@ public class JiraTasksUpdaterExtension {
     private String password;
     private String projectId;
     private String branch;
+    private String jiraVersionName;
+    private String stage;
+    private String currentStatus;
+    private String statusForTest;
 
     public String getJiraEndpoint() {
         return jiraEndpoint;
@@ -48,7 +52,35 @@ public class JiraTasksUpdaterExtension {
         this.branch = branch;
     }
 
+    public String getJiraVersionName() {
+        return jiraVersionName;
+    }
+
+    public void setJiraVersionName(String jiraVersionName) {
+        this.jiraVersionName = jiraVersionName;
+    }
+
     public String getStage() {
-        return null;
+        return stage;
+    }
+
+    public void setStage(String stage) {
+        this.stage = stage;
+    }
+
+    public String getCurrentStatus() {
+        return currentStatus;
+    }
+
+    public void setCurrentStatus(String currentStatus) {
+        this.currentStatus = currentStatus;
+    }
+
+    public String getStatusForTest() {
+        return statusForTest;
+    }
+
+    public void setStatusForTest(String statusForTest) {
+        this.statusForTest = statusForTest;
     }
 }

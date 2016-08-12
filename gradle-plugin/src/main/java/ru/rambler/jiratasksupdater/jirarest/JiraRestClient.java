@@ -2,7 +2,10 @@ package ru.rambler.jiratasksupdater.jirarest;
 
 import com.google.gson.reflect.TypeToken;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.lang.annotation.Annotation;
+import java.util.stream.Collectors;
 
 import okhttp3.ResponseBody;
 import retrofit2.Converter;
@@ -11,9 +14,9 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class JiraRestClient {
     private static JiraRestClient client;
-    JiraRestAuthService authService;
-    JiraRestApiService apiService;
-    Converter<ResponseBody, BaseJiraResponse> converter;
+    private JiraRestAuthService authService;
+    private JiraRestApiService apiService;
+    private Converter<ResponseBody, BaseJiraResponse> converter;
 
     private JiraRestClient(String jiraEndpoint) {
         Retrofit retrofit = new Retrofit.Builder()
@@ -44,5 +47,16 @@ public class JiraRestClient {
 
     public Converter<ResponseBody, BaseJiraResponse> getConverter() {
         return converter;
+    }
+
+    public String errorResponse(ResponseBody responseBody) {
+        try {
+            String result = new BufferedReader(new InputStreamReader(responseBody.byteStream())).lines()
+                    .parallel().collect(Collectors.joining("\n"));
+            return result;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
+        }
     }
 }
