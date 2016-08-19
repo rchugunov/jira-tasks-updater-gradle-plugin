@@ -1,1 +1,1 @@
-include ':app', ':gradle-plugin'
+include ':app', ':jiraTaskUpdater'

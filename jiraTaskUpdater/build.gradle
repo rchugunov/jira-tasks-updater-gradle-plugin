@@ -29,17 +29,17 @@ dependencies {
 
 }
 
-//bintray {
-//    user = "${BINTRAY_USER}"
-//    key = "${BINTRAY_KEY}"
-//    pkg {
-//        repo = "maven"
-//        name = "com.github.rchugunov"
-//        licenses = ['Apache-2.0']
-//        vcsUrl = 'https://github.com/rchugunov/android-analytics-gradle-plugin'
-//    }
-//    publications = ['AndroidAnalytics']
-//}
+bintray {
+    user = "${BINTRAY_USER}"
+    key = "${BINTRAY_KEY}"
+    pkg {
+        repo = "maven"
+        name = "jiratasksupdater"
+        licenses = ['Apache-2.0']
+        vcsUrl = 'https://github.com/rchugunov/jira-tasks-updater-gradle-plugin'
+    }
+    publications = ['JiraTasksUpdater']
+}
 
 publishing {
     publications {
@@ -54,16 +54,16 @@ publishing {
 
 // The configuration example below shows the minimum required properties
 // configured to publish your plugin to the plugin portal
-//pluginBundle {
-//    website = 'http://www.gradle.org/'
-//    vcsUrl = 'https://github.com/gradle/gradle'
-//    description = 'Gradle plugin retrieving git smart-commits and updating appropriate jira tasks'
-//    tags = ['android', 'jira', 'smart-commits', 'jenkins']
-//
-//    plugins {
-//        androidAnalytics {
-//            id = 'com.github.rchugunov.android-analytics'
-//            displayName = 'Gradle plugin for retrieving/handling application statistics'
-//        }
-//    }
-//}
+pluginBundle {
+    website = 'http://www.gradle.org/'
+    vcsUrl = 'https://github.com/gradle/gradle'
+    description = 'Gradle plugin retrieving git smart-commits and updating appropriate jira tasks'
+    tags = ['android', 'jira', 'smart-commits', 'jenkins']
+
+    plugins {
+        jiraTasksUpdater {
+            id = 'ru.rambler.jira-tasks-updater'
+            displayName = 'Jira tasks updater'
+        }
+    }
+}

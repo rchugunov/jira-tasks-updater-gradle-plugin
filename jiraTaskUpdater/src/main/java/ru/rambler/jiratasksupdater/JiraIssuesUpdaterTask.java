@@ -61,8 +61,6 @@ public class JiraIssuesUpdaterTask extends DefaultTask {
     private void updateTasksWithLastVersion(Set<String> tasks) {
         for (String issueId : tasks) {
             getLastAvailableVersion(issueId, jiraIssueFixVersion -> {
-                getLogger().quiet("Last jira version " + jiraIssueFixVersion.toString());
-
                 checkTasksAreResolved(tasks, stringStringMap -> {
                     getLogger().quiet("Issues for transition  " + stringStringMap.toString());
                     for (Map.Entry<String, String> entry : stringStringMap.entrySet()) {
