@@ -5,7 +5,7 @@ plugins {
 
 group = 'ru.rambler.jiratasksupdater'
 description = 'Gradle plugin retrieving git smart-commits and updating appropriate jira tasks'
-version '0.1.6'
+version '0.1.8'
 
 repositories {
     jcenter()

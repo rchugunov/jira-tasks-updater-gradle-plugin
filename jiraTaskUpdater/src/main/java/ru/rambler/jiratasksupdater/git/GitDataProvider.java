@@ -50,24 +50,31 @@ public class GitDataProvider {
     private Set<String> parseCommits(Git git, Iterable<RevCommit> revCommitList, boolean findSecondTag) {
         Set<String> commits = new LinkedHashSet<>();
 
-        boolean firstTagFound = false;
+        int tagsFound = 0;
 
         for (RevCommit revCommit : revCommitList) {
             String shortMessage = revCommit.getShortMessage();
-            logger.quiet("Commit " + shortMessage + revCommit.getName());
+            logger.quiet("Commit " + shortMessage + "       " + revCommit.getName() + "    Second tag: " + findSecondTag);
 
             try {
                 Map<ObjectId, String> tags = git.nameRev().addPrefix("refs/tags/").add(revCommit).call();
 
                 if (!tags.isEmpty()) {
-                    if (!findSecondTag || firstTagFound) {
-                        for (Map.Entry<ObjectId, String> entry : tags.entrySet()) {
-                            logger.quiet("Found tag " + entry.getValue() + " for commit " + shortMessage);
+
+                    boolean newTagFound = false;
+
+                    for (Map.Entry<ObjectId, String> entry : tags.entrySet()) {
+                        if (!entry.getValue().contains("~")) {
+                            newTagFound = true;
+                            tagsFound += 1;
+                            break;
                         }
-                        break;
+                        logger.quiet("Found tag " + entry.getValue() + " for commit " + shortMessage);
                     }
 
-                    firstTagFound = true;
+                    if (newTagFound && (!findSecondTag || tagsFound >= 2)) {
+                        break;
+                    }
                 }
             } catch (MissingObjectException | GitAPIException e) {
                 logger.error(e.getMessage(), e);

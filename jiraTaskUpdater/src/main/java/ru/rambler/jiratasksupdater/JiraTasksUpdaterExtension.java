@@ -67,7 +67,7 @@ public class JiraTasksUpdaterExtension {
         this.statusForTest = statusForTest;
     }
 
-    public boolean findSecondTag() {
+    public boolean isFindSecondTag() {
         return findSecondTag;
     }
 

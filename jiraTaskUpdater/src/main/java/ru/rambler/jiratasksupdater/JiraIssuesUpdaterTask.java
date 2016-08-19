@@ -56,16 +56,14 @@ public class JiraIssuesUpdaterTask extends DefaultTask {
     }
 
     private void updateTasksWithLastVersion(Set<String> tasks) {
-        for (String issueId : tasks) {
-            getLastAvailableVersion(issueId, jiraIssueFixVersion -> {
-                checkTasksAreResolved(tasks, stringStringMap -> {
-                    getLogger().quiet("Issues for transition  " + stringStringMap.toString());
-                    for (Map.Entry<String, String> entry : stringStringMap.entrySet()) {
-                        updateTaskWithVersionWithTransition(entry.getKey(), entry.getValue(), jiraIssueFixVersion);
-                    }
+        checkTasksAreResolved(tasks, stringStringMap -> {
+            getLogger().quiet("Issues for transition  " + stringStringMap.toString());
+            for (Map.Entry<String, String> entry : stringStringMap.entrySet()) {
+                getLastAvailableVersion(entry.getKey(), jiraIssueFixVersion -> {
+                    updateTaskWithVersionWithTransition(entry.getKey(), entry.getValue(), jiraIssueFixVersion);
                 });
-            });
-        }
+            }
+        });
     }
 
     private void getLastAvailableVersion(String issueId, Action<JiraIssueFixVersion> result) {
@@ -133,7 +131,7 @@ public class JiraIssuesUpdaterTask extends DefaultTask {
         GitDataProvider provider = new GitDataProvider();
         try {
             provider.init(extension.getProjectId(), getLogger());
-            Set<String> tasks = provider.getJiraTasks(extension.findSecondTag());
+            Set<String> tasks = provider.getJiraTasks(extension.isFindSecondTag());
             getLogger().quiet(tasks.toString());
             return tasks;
         } catch (Exception e) {
