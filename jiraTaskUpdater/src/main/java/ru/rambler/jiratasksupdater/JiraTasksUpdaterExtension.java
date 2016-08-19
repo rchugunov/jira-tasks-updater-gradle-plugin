@@ -9,6 +9,7 @@ public class JiraTasksUpdaterExtension {
     private String jiraReleaseVersionName;
     private String currentStatus;
     private String statusForTest;
+    private boolean findSecondTag;
 
     public String getJiraEndpoint() {
         return jiraEndpoint;
@@ -64,5 +65,13 @@ public class JiraTasksUpdaterExtension {
 
     public void setStatusForTest(String statusForTest) {
         this.statusForTest = statusForTest;
+    }
+
+    public boolean findSecondTag() {
+        return findSecondTag;
+    }
+
+    public void setFindSecondTag(boolean findSecondTag) {
+        this.findSecondTag = findSecondTag;
     }
 }

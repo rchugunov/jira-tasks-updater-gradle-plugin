@@ -38,17 +38,19 @@ public class GitDataProvider {
         this.smartCommitPattern = Pattern.compile(".*(" + jiraProjectId + "-\\d*).*");
     }
 
-    public Set<String> getJiraTasks() throws GitException, IOException, GitAPIException {
+    public Set<String> getJiraTasks(boolean findSecondTag) throws GitException, IOException, GitAPIException {
         if (existingRepo == null) {
             throw new GitException("Provider is not inited");
         }
 
         Git git = new Git(existingRepo);
-        return parseCommits(git, git.log().call());
+        return parseCommits(git, git.log().call(), findSecondTag);
     }
 
-    private Set<String> parseCommits(Git git, Iterable<RevCommit> revCommitList) {
+    private Set<String> parseCommits(Git git, Iterable<RevCommit> revCommitList, boolean findSecondTag) {
         Set<String> commits = new LinkedHashSet<>();
+
+        boolean firstTagFound = false;
 
         for (RevCommit revCommit : revCommitList) {
             String shortMessage = revCommit.getShortMessage();
@@ -58,10 +60,14 @@ public class GitDataProvider {
                 Map<ObjectId, String> tags = git.nameRev().addPrefix("refs/tags/").add(revCommit).call();
 
                 if (!tags.isEmpty()) {
-                    for (Map.Entry<ObjectId, String> entry : tags.entrySet()) {
-                        logger.quiet("Found tag " + entry.getValue() + " for commit " + shortMessage);
+                    if (!findSecondTag || firstTagFound) {
+                        for (Map.Entry<ObjectId, String> entry : tags.entrySet()) {
+                            logger.quiet("Found tag " + entry.getValue() + " for commit " + shortMessage);
+                        }
+                        break;
                     }
-                    break;
+
+                    firstTagFound = true;
                 }
             } catch (MissingObjectException | GitAPIException e) {
                 logger.error(e.getMessage(), e);

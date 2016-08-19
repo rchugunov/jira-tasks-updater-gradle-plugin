@@ -1,8 +1,6 @@
 package ru.rambler.jiratasksupdater;
 
 
-import com.google.gson.Gson;
-
 import org.gradle.api.Action;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.StopActionException;
@@ -30,7 +28,6 @@ import static ru.rambler.jiratasksupdater.jirarest.JiraIssueStatusReponse.Fields
 public class JiraIssuesUpdaterTask extends DefaultTask {
     private JiraRestClient client;
     private JiraTasksUpdaterExtension extension;
-    private Gson gson = new Gson();
 
     @TaskAction
     public void run() {
@@ -136,7 +133,7 @@ public class JiraIssuesUpdaterTask extends DefaultTask {
         GitDataProvider provider = new GitDataProvider();
         try {
             provider.init(extension.getProjectId(), getLogger());
-            Set<String> tasks = provider.getJiraTasks();
+            Set<String> tasks = provider.getJiraTasks(extension.findSecondTag());
             getLogger().quiet(tasks.toString());
             return tasks;
         } catch (Exception e) {
